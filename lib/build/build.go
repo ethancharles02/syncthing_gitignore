@@ -49,7 +49,10 @@ var (
 	LongVersion string
 	Extra       string
 
-	allowedVersionExp = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[a-z0-9]+)*(\.\d+)*(\+\d+-g[0-9a-f]+|\+[0-9a-z]+)?(-[^\s]+)?$`)
+	// Either a proper "vX.Y.Z..." release/build version, or a bare Git
+	// commit hash (optionally "-dirty") for untagged checkouts (e.g. a
+	// tagless fork or clone) where "git describe" has no tag to work from.
+	allowedVersionExp = regexp.MustCompile(`^(v\d+\.\d+\.\d+(-[a-z0-9]+)*(\.\d+)*(\+\d+-g[0-9a-f]+|\+[0-9a-z]+)?(-[^\s]+)?|[0-9a-f]{4,40}(-dirty)?)$`)
 
 	envTags = []string{
 		"STGUIASSETS",

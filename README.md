@@ -137,6 +137,10 @@ a release or checking out git, you just need to run `go run build.go` and the
 binaries are created in `./bin`. There's [a guide][5] with more details on the
 build process.
 
+The build embeds a version string derived from `git describe`. If your clone
+has release tags (e.g. from `git fetch --tags`), it's used as-is; if it
+doesn't, `go run build.go` falls back to the bare commit hash.
+
 ## Signed Releases
 
 Release binaries are GPG signed with the key available from
