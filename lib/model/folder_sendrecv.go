@@ -2066,8 +2066,8 @@ func (f *sendReceiveFolder) deleteDirOnDiskHandleChildren(dir string, scanChan c
 	if hasToBeScanned {
 		return errDirHasToBeScanned
 	}
-	// Ignored files will never be touched, i.e. this will keep failing until
-	// user acts.
+	// Files ignored and explicitly marked (?p) protected will never be
+	// touched, i.e. this will keep failing until user acts.
 	if hasIgnored {
 		return errDirHasIgnored
 	}

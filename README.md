@@ -37,9 +37,20 @@ too old — it will not silently fall back to old behavior.
   custom escape behavior they configured won't apply anymore. If you're
   migrating an existing `.stignore`, inline any `#include`d content
   manually first.
-- `(?i)` (case-insensitive) and `(?d)` (deletable, used by receive-only
-  folders) still work as line prefixes, layered on top of real gitignore
-  syntax.
+- `(?i)` (case-insensitive) still works as a line prefix, layered on top of
+  real gitignore syntax.
+- **Ignored files are deletable by default.** When a directory is removed
+  elsewhere and Syncthing needs to remove it locally too, ignored content
+  inside it (e.g. a `build/` or `node_modules/` matched by `.gitignore`) is
+  deleted along with it instead of blocking the removal — the old
+  `.stignore`-era behavior required an explicit `(?d)` prefix to allow this
+  per pattern, which real project `.gitignore` files never have, so folder
+  deletes involving ignored build artifacts used to fail permanently until a
+  user manually cleaned them up. The same default applies when reverting a
+  receive-only folder. Use `(?p)` on a pattern to opt it back out of this —
+  "protected" — for ignored-but-precious local content like secrets or
+  machine-local config that should never be auto-deleted. The old `(?d)`
+  prefix is still accepted for compatibility but is now a no-op.
 - **Real git semantics, including one genuinely surprising behavior change**:
   a `!negation` pattern cannot un-ignore something inside a directory that's
   already excluded by an earlier pattern, unless that directory itself is

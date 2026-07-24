@@ -158,18 +158,25 @@ func TestCanSkipDir(t *testing.T) {
 
 func TestDeletableFlag(t *testing.T) {
 	testFs := newTestFS(t)
-	writeFile(t, testFs, ".gitignore", "(?d)*.bak\n*.tmp\n")
+	writeFile(t, testFs, ".gitignore", "(?d)*.bak\n(?p)*.secret\n*.tmp\n")
 
 	m := mustMatch(t, New(testFs))
 	defer m.Stop()
 
+	// Ignored files are deletable by default -- (?d) is accepted but is a
+	// no-op now, and plain ignored patterns are deletable too.
 	del := m.Match("x.bak", false)
 	if !del.IsIgnored() || !del.IsDeletable() {
 		t.Error("x.bak should be ignored and deletable")
 	}
-	notDel := m.Match("x.tmp", false)
-	if !notDel.IsIgnored() || notDel.IsDeletable() {
-		t.Error("x.tmp should be ignored but not deletable")
+	del2 := m.Match("x.tmp", false)
+	if !del2.IsIgnored() || !del2.IsDeletable() {
+		t.Error("x.tmp should be ignored and deletable by default")
+	}
+	// (?p) opts a pattern back out of the default.
+	prot := m.Match("x.secret", false)
+	if !prot.IsIgnored() || prot.IsDeletable() {
+		t.Error("x.secret should be ignored but protected from deletion")
 	}
 }
 

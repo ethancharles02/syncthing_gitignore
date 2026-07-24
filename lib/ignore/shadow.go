@@ -27,7 +27,7 @@ const gitignoreName = ".gitignore"
 // shadow .gitignore file (index 0 unused) so it can be recovered from a
 // real git match via check-ignore -v's reported line number.
 type lineFlags struct {
-	deletable bool
+	protected bool
 	caseFold  bool
 }
 
@@ -114,17 +114,24 @@ func hashDiscovered(discovered map[string]discoveredIgnore) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// transformLine strips Syncthing's (?i)/(?d) prefixes (real git has no
-// concept of either) and returns the flags they carried alongside a line
-// git can interpret natively. Prefixes may appear in any order and at most
-// once each, mirroring the original hand-rolled parser's behavior. Blank
-// lines and comments (both real "#..." and the old "//...", which becomes a
-// harmless literal pattern under real git if not migrated) pass through
-// unchanged since none of the prefixes match them.
+// transformLine strips Syncthing's (?i)/(?d)/(?p) prefixes (real git has no
+// concept of any of them) and returns the flags they carried alongside a
+// line git can interpret natively. Prefixes may appear in any order and at
+// most once each, mirroring the original hand-rolled parser's behavior.
+// Blank lines and comments (both real "#..." and the old "//...", which
+// becomes a harmless literal pattern under real git if not migrated) pass
+// through unchanged since none of the prefixes match them.
+//
+// Ignored files are deletable by default (e.g. so a `build/` directory
+// doesn't block removing a folder that was deleted elsewhere). (?p) marks a
+// pattern as protected, opting it back out of that default -- useful for
+// ignored-but-precious local content like secrets or machine-local config.
+// (?d) is accepted as a harmless no-op for old ignore files written when
+// deletable was opt-in.
 func transformLine(line string) (shadowLine string, flags lineFlags) {
 	body := line
 	negated := false
-	var seenNeg, seenFold, seenDel bool
+	var seenNeg, seenFold, seenLegacyDel, seenProtect bool
 loop:
 	for {
 		switch {
@@ -135,9 +142,12 @@ loop:
 			seenFold = true
 			flags.caseFold = true
 			body = body[4:]
-		case strings.HasPrefix(body, "(?d)") && !seenDel:
-			seenDel = true
-			flags.deletable = true
+		case strings.HasPrefix(body, "(?d)") && !seenLegacyDel:
+			seenLegacyDel = true
+			body = body[4:]
+		case strings.HasPrefix(body, "(?p)") && !seenProtect:
+			seenProtect = true
+			flags.protected = true
 			body = body[4:]
 		default:
 			break loop

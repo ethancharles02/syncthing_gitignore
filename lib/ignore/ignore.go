@@ -245,7 +245,7 @@ func (m *Matcher) Match(file string, isDir bool) (result ignoreresult.R) {
 	}
 
 	out := ignoreresult.Ignored
-	if lf.deletable {
+	if !lf.protected {
 		out = out.WithDeletable()
 	}
 	if lf.caseFold {
