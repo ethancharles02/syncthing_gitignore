@@ -331,7 +331,7 @@ loop:
 		}
 
 		switch {
-		case f.ignores.Match(file.Name).IsIgnored():
+		case f.ignores.Match(file.Name, file.IsDirectory()).IsIgnored():
 			file.SetIgnored()
 			f.sl.DebugContext(ctx, "Handling ignored file", file.LogAttr())
 			dbUpdateChan <- dbUpdateJob{file, dbUpdateInvalidate}
@@ -1993,7 +1993,7 @@ func (f *sendReceiveFolder) deleteDirOnDiskHandleChildren(dir string, scanChan c
 		if err != nil {
 			return err
 		}
-		switch match := f.ignores.Match(path); {
+		switch match := f.ignores.Match(path, info.IsDir()); {
 		case match.IsDeletable():
 			if info.IsDir() {
 				dirsToDelete = append(dirsToDelete, path)

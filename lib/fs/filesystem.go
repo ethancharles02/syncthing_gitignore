@@ -117,7 +117,7 @@ type Usage struct {
 }
 
 type Matcher interface {
-	Match(name string) ignoreresult.R
+	Match(name string, isDir bool) ignoreresult.R
 }
 
 type Event struct {
@@ -295,8 +295,10 @@ func NewFilesystem(fsType FilesystemType, uri string, opts ...Option) Filesystem
 }
 
 // fs cannot import config or versioner, so we hard code .stfolder
-// (config.DefaultMarkerName) and .stversions (versioner.DefaultPath)
-var internals = []string{".stfolder", ".stignore", ".stversions"}
+// (config.DefaultMarkerName) and .stversions (versioner.DefaultPath).
+// .gitignore is deliberately not internal -- it's normal tracked content
+// under real git semantics, so it syncs like any other file.
+var internals = []string{".stfolder", ".stversions"}
 
 // IsInternal returns true if the file, as a path relative to the folder
 // root, represents an internal file that should always be ignored. The file

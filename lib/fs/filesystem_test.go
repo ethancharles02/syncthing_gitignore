@@ -21,20 +21,19 @@ func TestIsInternal(t *testing.T) {
 		internal bool
 	}{
 		{".stfolder", true},
-		{".stignore", true},
 		{".stversions", true},
 		{".stfolder/foo", true},
-		{".stignore/foo", true},
 		{".stversions/foo", true},
+		// .gitignore is deliberately NOT internal -- it's normal tracked
+		// content under real git semantics, unlike the old .stignore.
+		{".gitignore", false},
+		{".gitignore/foo", false},
 
 		{".stfolderfoo", false},
-		{".stignorefoo", false},
 		{".stversionsfoo", false},
 		{"foo.stfolder", false},
-		{"foo.stignore", false},
 		{"foo.stversions", false},
 		{"foo/.stfolder", false},
-		{"foo/.stignore", false},
 		{"foo/.stversions", false},
 	}
 

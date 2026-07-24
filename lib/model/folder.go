@@ -365,7 +365,7 @@ func (f *folder) getHealthErrorAndLoadIgnores() error {
 		return err
 	}
 	if f.Type != config.FolderTypeReceiveEncrypted {
-		if err := f.ignores.Load(".stignore"); err != nil && !fs.IsNotExist(err) {
+		if err := f.ignores.Load(); err != nil && !fs.IsNotExist(err) {
 			return fmt.Errorf("loading ignores: %w", err)
 		}
 	}
@@ -799,7 +799,7 @@ outer:
 				ignoredParent = ""
 			}
 
-			switch ignored := f.ignores.Match(fi.Name).IsIgnored(); {
+			switch ignored := f.ignores.Match(fi.Name, fi.IsDirectory()).IsIgnored(); {
 			case fi.IsIgnored() && ignored:
 				continue
 			case !fi.IsIgnored() && ignored:
@@ -951,7 +951,7 @@ loop:
 			continue
 		}
 
-		if f.ignores.Match(fi.Name).IsIgnored() {
+		if f.ignores.Match(fi.Name, fi.IsDirectory()).IsIgnored() {
 			continue
 		}
 

@@ -40,7 +40,7 @@ func TestRecvOnlyRevertDeletes(t *testing.T) {
 	}
 	writeFilePerm(t, ffs, "ignDir/ignFile", []byte("hello\n"), 0o644)
 	writeFilePerm(t, ffs, "unknownDir/unknownFile", []byte("hello\n"), 0o644)
-	writeFilePerm(t, ffs, ".stignore", []byte("ignDir\n"), 0o644)
+	writeFilePerm(t, ffs, ".gitignore", []byte("ignDir\n"), 0o644)
 
 	knownFiles := setupKnownFiles(t, ffs, []byte("hello\n"))
 
@@ -60,15 +60,17 @@ func TestRecvOnlyRevertDeletes(t *testing.T) {
 
 	must(t, m.ScanFolder("ro"))
 
-	// We should now have two files and two directories, with global state unchanged.
+	// We should now have three files (known, unknown, and .gitignore
+	// itself -- unlike the old hidden .stignore, it's normal visible
+	// content) and two directories, with global state unchanged.
 
 	size = mustV(m.GlobalSize("ro"))
 	if size.Files != 1 || size.Directories != 1 {
 		t.Fatalf("Global: expected 1 file and 1 directory: %+v", size)
 	}
 	size = mustV(m.LocalSize("ro", protocol.LocalDeviceID))
-	if size.Files != 2 || size.Directories != 2 {
-		t.Fatalf("Local: expected 2 files and 2 directories: %+v", size)
+	if size.Files != 3 || size.Directories != 2 {
+		t.Fatalf("Local: expected 3 files and 2 directories: %+v", size)
 	}
 	size = mustV(m.ReceiveOnlySize("ro"))
 	if size.Files+size.Directories == 0 {

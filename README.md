@@ -6,6 +6,63 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/88/badge)](https://bestpractices.coreinfrastructure.org/projects/88)
 [![Go Report Card](https://goreportcard.com/badge/github.com/syncthing/syncthing)](https://goreportcard.com/report/github.com/syncthing/syncthing)
 
+## This fork: real `.gitignore` support
+
+This is a personal fork of Syncthing that replaces the built-in `.stignore`
+ignore mechanism with real, nested `.gitignore` semantics, matched by
+shelling out to an actual `git` binary rather than a hand-rolled matcher.
+Everything below the "Goals" heading is unmodified upstream documentation;
+this section covers what's different here.
+
+**Requirements**: `git` >= 2.30 must be installed and on `PATH` on every
+machine running this build. Syncthing checks this at startup and refuses to
+start (with a clear error, logged and non-zero exit) if `git` is missing or
+too old — it will not silently fall back to old behavior.
+
+**What changed from stock Syncthing:**
+
+- Ignore files are named `.gitignore`, not `.stignore`, and any directory in
+  a synced folder can have its own — not just one file at the folder root.
+  A `.gitignore` inside a real git-cloned project now syncs and applies
+  normally, the same as any other file in that project.
+- `.gitignore` is **normal, visible, synced content** — unlike the old
+  `.stignore`, it is not hidden from peers or from your own file listing.
+  This also means ignore rules are shared across your devices for a given
+  folder, not set per-device.
+- Comments use real gitignore syntax (`#`), not the old `//`.
+- `#include` and `#escape=` (both Syncthing-only extensions with no
+  gitignore equivalent) are gone. Any line starting with `#` is just a
+  normal comment now, so old `#include`/`#escape=` lines become harmless
+  no-ops rather than errors — but the content they used to pull in or the
+  custom escape behavior they configured won't apply anymore. If you're
+  migrating an existing `.stignore`, inline any `#include`d content
+  manually first.
+- `(?i)` (case-insensitive) and `(?d)` (deletable, used by receive-only
+  folders) still work as line prefixes, layered on top of real gitignore
+  syntax.
+- **Real git semantics, including one genuinely surprising behavior change**:
+  a `!negation` pattern cannot un-ignore something inside a directory that's
+  already excluded by an earlier pattern, unless that directory itself is
+  separately un-ignored. Concretely, this no longer works the way it used
+  to:
+  ```
+  *
+  !/foo/bar
+  ```
+  `foo` itself still matches the bare `*` and is excluded, so `foo/bar`
+  stays excluded too. The real-gitignore-correct way to write "ignore
+  everything except `foo/bar`" is to un-ignore every intermediate directory
+  explicitly:
+  ```
+  *
+  !/foo/
+  !/foo/bar/
+  !/foo/bar/**
+  ```
+  This is standard, documented real-`git` behavior, not a bug — but if
+  you're bringing over `.stignore` patterns that relied on the old, more
+  lenient matcher, check for this pattern and rewrite it.
+
 ## Goals
 
 Syncthing is a **continuous file synchronization program**. It synchronizes

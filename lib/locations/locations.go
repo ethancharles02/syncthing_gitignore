@@ -35,6 +35,8 @@ const (
 	GUIAssets      LocationEnum = "guiAssets"
 	DefFolder      LocationEnum = "defFolder"
 	LockFile       LocationEnum = "lockFile"
+	GitShimAnchor  LocationEnum = "gitShimAnchor"
+	GitShimShadow  LocationEnum = "gitShimShadow"
 )
 
 type BaseDirEnum string
@@ -129,6 +131,8 @@ var locationTemplates = map[LocationEnum]string{
 	GUIAssets:      "${config}/gui",
 	DefFolder:      "${userHome}/Sync",
 	LockFile:       "${data}/syncthing.lock",
+	GitShimAnchor:  "${data}/gitshim/anchor",
+	GitShimShadow:  "${data}/gitshim/shadow",
 }
 
 var locations = make(map[LocationEnum]string)

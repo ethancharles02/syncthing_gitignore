@@ -338,7 +338,7 @@ func (m *model) fatal(err error) {
 func (m *model) addAndStartFolderLocked(cfg config.FolderConfiguration, cacheIgnoredFiles bool) {
 	ignores := ignore.New(cfg.Filesystem(), ignore.WithCache(cacheIgnoredFiles))
 	if cfg.Type != config.FolderTypeReceiveEncrypted {
-		if err := ignores.Load(".stignore"); err != nil && !fs.IsNotExist(err) {
+		if err := ignores.Load(); err != nil && !fs.IsNotExist(err) {
 			slog.Error("Failed to load ignores", slogutil.Error(err))
 		}
 	}
@@ -402,10 +402,11 @@ func (m *model) addAndStartFolderLockedWithIgnores(cfg config.FolderConfiguratio
 	}
 
 	// These are our metadata files, and they should always be hidden.
+	// .gitignore is deliberately not hidden -- it's normal tracked content
+	// under real git semantics, unlike the old .stignore.
 	ffs := cfg.Filesystem()
 	_ = ffs.Hide(config.DefaultMarkerName)
 	_ = ffs.Hide(versioner.DefaultPath)
-	_ = ffs.Hide(".stignore")
 
 	var ver versioner.Versioner
 	if cfg.Versioning.Type != "" {
@@ -446,7 +447,7 @@ func (m *model) warnAboutOverwritingProtectedFiles(cfg config.FolderConfiguratio
 
 		// check if file is ignored
 		relPath, _ := filepath.Rel(folderLocation, protectedFilePath)
-		if ignores.Match(relPath).IsIgnored() {
+		if ignores.Match(relPath, false).IsIgnored() {
 			continue
 		}
 
@@ -2005,7 +2006,7 @@ func (m *model) Request(conn protocol.Connection, req *protocol.Request) (out pr
 		return nil, protocol.ErrInvalid
 	}
 
-	if folderIgnores.Match(req.Name).IsIgnored() {
+	if folderIgnores.Match(req.Name, false).IsIgnored() {
 		l.Debugf("%v REQ(in) for ignored file: %s: %q / %q o=%d s=%d", m, deviceID.Short(), req.Folder, req.Name, req.Offset, req.Size)
 		return nil, protocol.ErrInvalid
 	}
@@ -2192,7 +2193,7 @@ func (m *model) LoadIgnores(folder string) ([]string, []string, error) {
 		ignores = ignore.New(cfg.Filesystem())
 	}
 
-	err := ignores.Load(".stignore")
+	err := ignores.Load()
 	if fs.IsNotExist(err) {
 		// Having no ignores is not an error.
 		return nil, nil, nil
@@ -2244,8 +2245,8 @@ func (m *model) setIgnores(cfg config.FolderConfiguration, content []string) err
 		return err
 	}
 
-	if err := ignore.WriteIgnores(cfg.Filesystem(), ".stignore", content); err != nil {
-		slog.Error("Failed to save .stignore", slogutil.Error(err))
+	if err := ignore.WriteIgnores(cfg.Filesystem(), ".gitignore", content); err != nil {
+		slog.Error("Failed to save .gitignore", slogutil.Error(err))
 		return err
 	}
 

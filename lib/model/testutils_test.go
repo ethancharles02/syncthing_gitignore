@@ -10,7 +10,6 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/syncthing/syncthing/internal/db/sqlite"
 	"github.com/syncthing/syncthing/lib/config"
@@ -210,47 +209,16 @@ func cleanupModelAndRemoveDir(m *testModel, dir string) {
 	os.RemoveAll(dir)
 }
 
-type alwaysChangedKey struct {
-	fs   fs.Filesystem
-	name string
-}
-
-// alwaysChanges is an ignore.ChangeDetector that always returns true on Changed()
-type alwaysChanged struct {
-	seen map[alwaysChangedKey]struct{}
-}
-
-func newAlwaysChanged() *alwaysChanged {
-	return &alwaysChanged{
-		seen: make(map[alwaysChangedKey]struct{}),
-	}
-}
-
-func (c *alwaysChanged) Remember(fs fs.Filesystem, name string, _ time.Time) {
-	c.seen[alwaysChangedKey{fs, name}] = struct{}{}
-}
-
-func (c *alwaysChanged) Reset() {
-	c.seen = make(map[alwaysChangedKey]struct{})
-}
-
-func (c *alwaysChanged) Seen(fs fs.Filesystem, name string) bool {
-	_, ok := c.seen[alwaysChangedKey{fs, name}]
-	return ok
-}
-
-func (*alwaysChanged) Changed() bool {
-	return true
-}
-
-// Reach in and update the ignore matcher to one that always does
-// reloads when asked to, instead of checking file mtimes. This is
-// because we will be changing the files on disk often enough that the
-// mtimes will be unreliable to determine change status.
+// Reach in and update the ignore matcher to one that always does full
+// reloads when asked to. Unlike the old mtime-based matcher, Load() on the
+// new gitignore matcher always re-reads and re-hashes on every call rather
+// than skipping based on a possibly-unreliable mtime, so no special
+// always-changed ChangeDetector is needed anymore -- this is now just a
+// plain ignore.New.
 func folderIgnoresAlwaysReload(t testing.TB, m *testModel, fcfg config.FolderConfiguration) {
 	t.Helper()
 	m.removeFolder(fcfg)
-	ignores := ignore.New(fcfg.Filesystem(), ignore.WithCache(true), ignore.WithChangeDetector(newAlwaysChanged()))
+	ignores := ignore.New(fcfg.Filesystem(), ignore.WithCache(true))
 	m.mut.Lock()
 	m.addAndStartFolderLockedWithIgnores(fcfg, ignores)
 	m.mut.Unlock()

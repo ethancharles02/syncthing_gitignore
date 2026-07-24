@@ -26,7 +26,7 @@ func main() {
 	vfs := fs.NewWalkFilesystem(fs.NewFilesystem(fs.FilesystemTypeBasic, root))
 
 	ign := ignore.New(vfs)
-	if err := ign.Load(".stignore"); err != nil {
+	if err := ign.Load(); err != nil {
 		fmt.Fprintf(os.Stderr, "Fatal: loading ignores: %v\n", err)
 		os.Exit(1)
 	}
@@ -36,7 +36,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Warning: %s: %v\n", path, err)
 			return fs.SkipDir
 		}
-		if ign.Match(path).IsIgnored() {
+		if ign.Match(path, info.IsDir()).IsIgnored() {
 			fmt.Println(path)
 		}
 		return nil

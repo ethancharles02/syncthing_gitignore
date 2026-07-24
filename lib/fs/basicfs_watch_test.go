@@ -614,7 +614,7 @@ type fakeMatcher struct {
 	skipIgnoredDirs bool
 }
 
-func (fm fakeMatcher) Match(name string) ignoreresult.R {
+func (fm fakeMatcher) Match(name string, _ bool) ignoreresult.R {
 	if name != fm.include && name == fm.ignore {
 		return ignoreresult.Ignored
 	}

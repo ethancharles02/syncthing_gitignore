@@ -14,6 +14,7 @@ package fs
 import (
 	"context"
 	"errors"
+	"os"
 	"unicode/utf8"
 
 	"github.com/syncthing/notify"
@@ -47,7 +48,16 @@ func (f *BasicFilesystem) Watch(name string, ignore Matcher, ctx context.Context
 		if err != nil {
 			return true
 		}
-		return ignore.Match(rel).CanSkipDir()
+		// Best-effort: the ignore matcher needs to know if this is a
+		// directory to honor directory-only patterns correctly. If the
+		// path is already gone, default to false -- it's the common case
+		// and a wrong guess here only affects watch setup, not matching
+		// during an actual scan.
+		isDir := false
+		if info, statErr := os.Lstat(absPath); statErr == nil {
+			isDir = info.IsDir()
+		}
+		return ignore.Match(rel, isDir).CanSkipDir()
 	}
 	err = notify.WatchWithFilter(watchPath, backendChan, absShouldIgnore, eventMask)
 	if err != nil {
@@ -102,7 +112,12 @@ func (f *BasicFilesystem) watchLoop(ctx context.Context, name string, roots []st
 				return
 			}
 
-			if ignore.Match(relPath).IsIgnored() {
+			// Same best-effort isDir determination as absShouldIgnore above.
+			isDir := false
+			if info, statErr := os.Lstat(evPath); statErr == nil {
+				isDir = info.IsDir()
+			}
+			if ignore.Match(relPath, isDir).IsIgnored() {
 				l.Debugln(f.Type(), f.URI(), "Watch: Ignoring", relPath)
 				continue
 			}

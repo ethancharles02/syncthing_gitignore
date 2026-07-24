@@ -1001,10 +1001,26 @@ func TestIgnoreDeleteUnignore(t *testing.T) {
 
 	done = make(chan struct{})
 	fc.setIndexFn(func(_ context.Context, folder string, fs []protocol.FileInfo) error {
-		basicCheck(fs)
-		f := fs[0]
-		if !f.IsInvalid() {
-			t.Errorf("Received non-invalid index update")
+		// SetIgnores now writes a real, visible .gitignore file (unlike the
+		// old hidden .stignore), so this scan picks up two changes at
+		// once: "foobar" becoming invalid/ignored, and .gitignore itself
+		// appearing as new synced content.
+		if len(fs) != 2 {
+			t.Fatal("expected two index entries, got", len(fs))
+		}
+		for _, f := range fs {
+			switch f.Name {
+			case file:
+				if !f.IsInvalid() {
+					t.Errorf("Received non-invalid index update for %v", file)
+				}
+			case ".gitignore":
+				if f.IsInvalid() {
+					t.Errorf("Received invalid index update for .gitignore")
+				}
+			default:
+				t.Errorf("Unexpected index entry for %v", f.Name)
+			}
 		}
 		close(done)
 		return nil
@@ -1022,15 +1038,26 @@ func TestIgnoreDeleteUnignore(t *testing.T) {
 
 	done = make(chan struct{})
 	fc.setIndexFn(func(_ context.Context, folder string, fs []protocol.FileInfo) error {
-		basicCheck(fs)
-		f := fs[0]
-		if f.IsInvalid() {
-			t.Errorf("Received invalid index update")
+		// Same reasoning as above: clearing ignores deletes the now-empty
+		// .gitignore file (WriteIgnores removes it when content is empty),
+		// bundled with the already-removed "foobar" in the same scan.
+		if len(fs) != 2 {
+			t.Fatal("expected two index entries, got", len(fs))
 		}
-		if !f.Version.Equal(protocol.Vector{}) && f.Deleted {
-			t.Error("Received deleted index entry with non-empty version")
+		for _, f := range fs {
+			if f.IsInvalid() {
+				t.Errorf("Received invalid index update for %v", f.Name)
+			}
+			// foobar spent its whole life ignored/invalid, so the model
+			// never tracked real version history for it -- its deletion
+			// should carry an empty version. .gitignore is a normal file
+			// with real prior version history, so its deletion carrying a
+			// non-empty version is expected and not an error.
+			if f.Name == file && !f.Version.Equal(protocol.Vector{}) && f.Deleted {
+				t.Errorf("Received deleted index entry with non-empty version for %v", f.Name)
+			}
+			t.Log(f)
 		}
-		t.Log(f)
 		close(done)
 		return nil
 	})

@@ -32,6 +32,7 @@ import (
 	"github.com/syncthing/syncthing/lib/connections/registry"
 	"github.com/syncthing/syncthing/lib/discover"
 	"github.com/syncthing/syncthing/lib/events"
+	"github.com/syncthing/syncthing/lib/ignore"
 	"github.com/syncthing/syncthing/lib/locations"
 	"github.com/syncthing/syncthing/lib/model"
 	"github.com/syncthing/syncthing/lib/osutil"
@@ -127,6 +128,14 @@ func (a *App) LastMaintenanceTime() time.Time {
 }
 
 func (a *App) startup() error {
+	// Ignore matching is backed by a real `git` binary now (see lib/ignore) --
+	// fail loudly here, before any folder starts, rather than surfacing a
+	// confusing per-folder error later.
+	if err := ignore.CheckGitAvailable(); err != nil {
+		slog.Error("git is required for gitignore-based ignore matching", slogutil.Error(err))
+		return err
+	}
+
 	a.mainService.Add(ur.NewFailureHandler(a.cfg, a.evLogger))
 
 	a.dbService = a.sdb.Service(a.opts.DBMaintenanceInterval)
