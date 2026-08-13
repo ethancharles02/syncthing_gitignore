@@ -366,7 +366,11 @@ func parseFlags() {
 	flag.StringVar(&goarch, "goarch", runtime.GOARCH, "GOARCH")
 	flag.StringVar(&goos, "goos", runtime.GOOS, "GOOS")
 	flag.StringVar(&goCmd, "gocmd", "go", "Specify `go` command")
-	flag.BoolVar(&noupgrade, "no-upgrade", noupgrade, "Disable upgrade functionality")
+	// Defaults to true (unlike upstream) -- this fork must never silently
+	// self-replace with an official upstream release via auto-upgrade, since
+	// that would revert its .gitignore-based ignore matching back to
+	// .stignore. Pass -no-upgrade=false to opt back into upstream's default.
+	flag.BoolVar(&noupgrade, "no-upgrade", true, "Disable upgrade functionality")
 	flag.StringVar(&version, "version", getVersion(), "Set compiled in version string")
 	flag.BoolVar(&race, "race", race, "Use race detector")
 	flag.StringVar(&extraTags, "tags", extraTags, "Extra tags, space separated")
