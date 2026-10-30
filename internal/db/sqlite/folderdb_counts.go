@@ -84,7 +84,7 @@ func (s *folderDB) needSizeRemote(device protocol.DeviceID) (db.Counts, error) {
 		WHERE g.local_flags & {{.FlagLocalGlobal}} != 0 AND NOT g.deleted AND g.local_flags & {{.LocalInvalidFlags}} = 0 AND NOT EXISTS (
 			SELECT 1 FROM FILES f
 			INNER JOIN devices d ON d.idx = f.device_idx
-			WHERE f.name_idx = g.name_idx AND f.version_idx = g.version_idx AND d.device_id = ?
+			WHERE f.name_idx = g.name_idx AND d.device_id = ? AND (f.version_idx = g.version_idx OR f.local_flags & {{.LocalInvalidFlags}} != 0)
 		)
 		GROUP BY g.type, g.local_flags, g.deleted
 

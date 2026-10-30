@@ -319,6 +319,52 @@ func TestDontNeedRemoteInvalid(t *testing.T) {
 	}
 }
 
+func TestRemoteDontNeedRemoteInvalid(t *testing.T) {
+	t.Parallel()
+
+	db, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	// A valid global file from one remote
+	err = db.Update(folderID, protocol.DeviceID{43}, []protocol.FileInfo{genFile("test1", 1, 103)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Which another remote has ignored, at a different version
+	file := genFile("test1", 1, 104)
+	file.Version = file.Version.Update(42)
+	file.LocalFlags = protocol.FlagLocalRemoteInvalid
+	err = db.Update(folderID, protocol.DeviceID{42}, []protocol.FileInfo{file})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// They don't need it
+	s, err := db.CountNeed(folderID, protocol.DeviceID{42})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Bytes != 0 || s.Files != 0 {
+		t.Log(s)
+		t.Error("bad need")
+	}
+
+	// It shouldn't show up in their need list
+	names := mustCollect[protocol.FileInfo](t)(db.AllNeededGlobalFiles(folderID, protocol.DeviceID{42}, config.PullOrderAlphabetic, 0, 0))
+	if len(names) != 0 {
+		t.Log(names)
+		t.Error("need no files")
+	}
+}
+
 func TestRemoteDontNeedLocalIgnored(t *testing.T) {
 	t.Parallel()
 

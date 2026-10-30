@@ -154,7 +154,8 @@ func (s *folderDB) neededGlobalFilesRemote(device protocol.DeviceID, selectOpts 
 	// Select:
 	//
 	// - all the valid, non-deleted global files that don't have a
-	//   corresponding remote file with the same version.
+	//   corresponding remote file with the same version, or that the remote
+	//   has as invalid (e.g. ignored there).
 	//
 	// - all the valid, deleted global files that have a corresponding
 	//   non-deleted and valid remote file (of any version)
@@ -167,7 +168,7 @@ func (s *folderDB) neededGlobalFilesRemote(device protocol.DeviceID, selectOpts 
 		WHERE g.local_flags & {{.FlagLocalGlobal}} != 0 AND NOT g.deleted AND g.local_flags & {{.LocalInvalidFlags}} = 0 AND NOT EXISTS (
 			SELECT 1 FROM FILES f
 			INNER JOIN devices d ON d.idx = f.device_idx
-			WHERE f.name_idx = g.name_idx AND f.version_idx = g.version_idx AND d.device_id = ?
+			WHERE f.name_idx = g.name_idx AND d.device_id = ? AND (f.version_idx = g.version_idx OR f.local_flags & {{.LocalInvalidFlags}} != 0)
 		)
 
 		UNION ALL
