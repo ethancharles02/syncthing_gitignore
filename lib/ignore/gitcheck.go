@@ -79,7 +79,7 @@ func checkGitAvailable() (gitPath, anchorDir string, err error) {
 }
 
 func checkGitVersion(gitPath string) error {
-	out, err := exec.Command(gitPath, "--version").Output()
+	out, err := gitCommand(gitPath, "--version").Output()
 	if err != nil {
 		return fmt.Errorf("failed to run %q --version: %w", gitPath, err)
 	}
@@ -102,7 +102,7 @@ func ensureAnchorRepo(gitPath, anchorDir string) error {
 	if err := os.MkdirAll(anchorDir, 0o700); err != nil {
 		return err
 	}
-	cmd := exec.Command(gitPath, "init", "-q", anchorDir)
+	cmd := gitCommand(gitPath, "init", "-q", anchorDir)
 	cmd.Env = gitEnv()
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%w: %s", err, out)

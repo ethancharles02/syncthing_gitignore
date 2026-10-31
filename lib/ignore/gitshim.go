@@ -50,7 +50,7 @@ func gitEnv() []string {
 }
 
 func newCheckIgnoreProcess(gitPath, anchorDir, workDir string) (*checkIgnoreProcess, error) {
-	cmd := exec.Command(gitPath,
+	cmd := gitCommand(gitPath,
 		"-c", "core.excludesFile=",
 		"-c", fmt.Sprintf("core.ignorecase=%v", platformDefaultIgnoreCase()),
 		"-C", workDir,
